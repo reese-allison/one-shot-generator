@@ -1,4 +1,9 @@
 @echo off
+
+echo Setting up git hooks...
+call npm install
+icacls .husky\pre-commit /grant Everyone:F
+
 echo Creating Python virtual environment for development...
 python -m venv .venv
 
@@ -28,10 +33,10 @@ if not defined VENV_FOUND (
 echo Installing backend development dependencies...
 pip install -r backend\dev-requirements.txt
 
-echo Setting up git hooks...
-npm install --save-dev husky lint-staged
-npx husky init
-icacls .husky\pre-commit /grant Everyone:F
+echo Installing frontend dependencies...
+cd frontend
+call npm install
+cd ..
 
 echo Development environment setup complete!
 echo To activate the virtual environment manually, run: .venv\Scripts\activate.bat

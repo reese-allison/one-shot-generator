@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "Setting up git hooks..."
+npm install
+chmod +x .husky/pre-commit
+
 # Create a Python virtual environment for development
 echo "Creating Python virtual environment for development..."
 python -m venv .venv
@@ -27,11 +31,10 @@ echo "Virtual environment successfully activated: $(which python)"
 echo "Installing backend development dependencies..."
 pip install -r backend/dev-requirements.txt
 
-# Set up Husky and lint-staged for git hooks
-echo "Setting up git hooks..."
-npm install --save-dev husky lint-staged
-npx husky init
-chmod +x .husky/pre-commit
+echo Installing frontend dependencies...
+cd frontend
+npm install
+cd ..
 
 echo "Development environment setup complete!"
 echo "To activate the virtual environment manually, run: source .venv/bin/activate"

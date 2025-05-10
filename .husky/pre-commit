@@ -1,36 +1,62 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
+#!/usr/bin/env bash
 # Make script stop on first error
 set -e
 
 echo "🔍 Running pre-commit checks..."
 
+# Store the root directory
+ROOT_DIR=$(pwd)
+
+# Activate virtual environment based on platform
+activate_venv() {
+  # Common venv directory names
+  for venv_dir in ".venv" "venv" "env"; do
+    if [ -d "$ROOT_DIR/$venv_dir" ]; then
+      echo "📦 Activating virtual environment: $venv_dir"
+      
+      # Windows (Git Bash or similar)
+      if [ -f "$ROOT_DIR/$venv_dir/Scripts/activate" ]; then
+        source "$ROOT_DIR/$venv_dir/Scripts/activate"
+        return 0
+      # Linux/Mac
+      elif [ -f "$ROOT_DIR/$venv_dir/bin/activate" ]; then
+        source "$ROOT_DIR/$venv_dir/bin/activate"
+        return 0
+      fi
+    fi
+  done
+  echo "⚠️ No virtual environment found. Using system Python."
+  return 1
+}
+
+# Try to activate the virtual environment
+activate_venv
+
 # Backend checks
 echo "⚙️ Running backend checks..."
-cd backend || exit 1
+cd "$ROOT_DIR/backend" || exit 1
 
 echo "Running isort..."
-isort . || { echo "❌ isort failed"; exit 1; }
+python -m isort . || { echo "❌ isort failed"; exit 1; }
 
 echo "Running black..."
-black . || { echo "❌ black failed"; exit 1; }
+python -m black . || { echo "❌ black failed"; exit 1; }
 
 echo "Running flake8..."
-flake8 . || { echo "❌ flake8 failed"; exit 1; }
+python -m flake8 . || { echo "❌ flake8 failed"; exit 1; }
 
 echo "Running mccabe..."
-flake8 . --select=C901 || { echo "❌ mccabe failed"; exit 1; }
+python -m flake8 . --select=C901 || { echo "❌ mccabe failed"; exit 1; }
 
 echo "Running mypy..."
-mypy . || { echo "❌ mypy failed"; exit 1; }
+python -m mypy . || { echo "❌ mypy failed"; exit 1; }
 
 # Return to root directory
-cd ..
+cd "$ROOT_DIR"
 
 # Frontend checks
 echo "⚙️ Running frontend checks..."
-cd frontend || exit 1
+cd "$ROOT_DIR/frontend" || exit 1
 
 echo "Running eslint..."
 npx eslint . || { echo "❌ eslint failed"; exit 1; }
@@ -42,6 +68,6 @@ echo "Running typescript..."
 npx tsc --noEmit || { echo "❌ typescript failed"; exit 1; }
 
 # Return to root directory
-cd ..
+cd "$ROOT_DIR"
 
 echo "✅ All checks passed!"
