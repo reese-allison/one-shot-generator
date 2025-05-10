@@ -137,7 +137,7 @@
 									class="card bg-primary-900/40 border-primary-500/30 rounded-lg border p-4 text-center shadow"
 								>
 									<span
-										class="badge bg-primary-500 mb-2 inline-flex justify-center rounded-full px-2 py-1 text-xs text-white"
+										class="badge bg-primary-500 mb-2 inline-flex justify-center rounded-full px-2 py-1 text-xs text-black"
 										>Character {i + 1}</span
 									>
 									<p class="text-white">{character}</p>
@@ -154,12 +154,12 @@
 					>
 					<div class="flex gap-3">
 						<button
-							class="btn bg-surface-600 hover:bg-surface-500 rounded-lg px-4 py-2 text-white shadow transition-all"
+							class="btn bg-surface-600 hover:bg-surface-500 rounded-lg px-4 py-2 text-black shadow transition-all"
 						>
 							Share
 						</button>
 						<button
-							class="btn bg-secondary-600 hover:bg-secondary-500 rounded-lg px-4 py-2 text-white shadow-md transition-all hover:shadow-lg"
+							class="btn bg-secondary-600 hover:bg-secondary-500 rounded-lg px-4 py-2 text-black shadow-md transition-all hover:shadow-lg"
 							on:click={() => (result = null)}
 						>
 							Create New
