@@ -1,0 +1,47 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Make script stop on first error
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Backend checks
+echo "⚙️ Running backend checks..."
+cd backend || exit 1
+
+echo "Running isort..."
+isort . || { echo "❌ isort failed"; exit 1; }
+
+echo "Running black..."
+black . || { echo "❌ black failed"; exit 1; }
+
+echo "Running flake8..."
+flake8 . || { echo "❌ flake8 failed"; exit 1; }
+
+echo "Running mccabe..."
+flake8 . --select=C901 || { echo "❌ mccabe failed"; exit 1; }
+
+echo "Running mypy..."
+mypy . || { echo "❌ mypy failed"; exit 1; }
+
+# Return to root directory
+cd ..
+
+# Frontend checks
+echo "⚙️ Running frontend checks..."
+cd frontend || exit 1
+
+echo "Running eslint..."
+npx eslint . || { echo "❌ eslint failed"; exit 1; }
+
+echo "Running prettier..."
+npx prettier --check . || { echo "❌ prettier failed"; exit 1; }
+
+echo "Running typescript..."
+npx tsc --noEmit || { echo "❌ typescript failed"; exit 1; }
+
+# Return to root directory
+cd ..
+
+echo "✅ All checks passed!"
