@@ -6,11 +6,18 @@ import { defineConfig as defineVitest } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	server: {
+		watch: {
+			usePolling: true
+		},
+		hmr: {
+			overlay: true
+		}
+	},
 	...defineVitest({
 		test: {
 			workspace: [
 				{
-					extends: './vite.config.ts',
 					plugins: [svelteTesting()],
 					test: {
 						name: 'client',
@@ -22,7 +29,6 @@ export default defineConfig({
 					}
 				},
 				{
-					extends: './vite.config.ts',
 					test: {
 						name: 'server',
 						environment: 'node',

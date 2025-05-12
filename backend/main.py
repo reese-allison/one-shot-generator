@@ -49,7 +49,7 @@ async def generate_oneshot_idea(data: PromptRequest) -> OneshotResponse:
     # Placeholder logic - replace with actual generation
     generated_idea: str = f"A thrilling adventure based on: '{data.prompt}'"
     generated_details: str = (
-        "The adventurers must delve into the mysterious "
+        "The adventurers must delve into a mysterious "
         f"{data.prompt.split(' ')[-1] if data.prompt else 'depths'} "
         "to recover a lost artifact. They will face cunning traps, "
         "enigmatic puzzles, and a fearsome guardian."

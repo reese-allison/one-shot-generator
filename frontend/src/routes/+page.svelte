@@ -44,9 +44,6 @@
 	<div class="space-y-8">
 		<header class="space-y-2 text-center">
 			<h1 class="h1 text-4xl font-bold md:text-5xl">Oneshot RPG Generator</h1>
-			<p class="text-surface-300-600-token text-lg">
-				Generate unique RPG adventure ideas with a simple prompt
-			</p>
 		</header>
 
 		<!-- Input Form -->

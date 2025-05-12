@@ -2,6 +2,9 @@
 
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/reign';
+
+@import '../static/themes/dnd-5e.css';
+@import '../static/themes/mork-borg.css';
+@import '../static/themes/tiny-d6.css';
 
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
