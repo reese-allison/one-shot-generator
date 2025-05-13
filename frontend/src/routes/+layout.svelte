@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import ThemeSwitcher from '../components/+themeswitcher.svelte';
+	import ThemeSwitcher from '$lib/components/themeswitcher.svelte';
 
 	let { children } = $props();
 </script>
