@@ -3,8 +3,16 @@
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
 
+@import '@fontsource/crimson-text';
+@import '@fontsource/cinzel';
 @import '../static/themes/dnd-5e.css';
+
+@import '@fontsource/crimson-pro';
+@import '@fontsource/grenze-gotisch';
 @import '../static/themes/mork-borg.css';
+
+@import '@fontsource/inter';
+@import '@fontsource/barlow-condensed';
 @import '../static/themes/tiny-d6.css';
 
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';

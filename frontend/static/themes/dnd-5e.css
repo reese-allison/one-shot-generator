@@ -2,7 +2,7 @@
 	--text-scaling: 1.067;
 	--base-font-color: oklch(24.78% 0 0);
 	--base-font-color-dark: oklch(95% 0.005 90);
-	--base-font-family: 'Noto Sans', 'Myriad Pro', Calibri, Helvetica, Arial, sans-serif;
+	--base-font-family: 'Crimson Text';
 	--base-font-size: inherit;
 	--base-line-height: inherit;
 	--base-font-weight: normal;
@@ -11,9 +11,7 @@
 
 	--heading-font-color: oklch(37.99% 0.111 29.93);
 	--heading-font-color-dark: oklch(37.99% 0.111 29.93);
-	--heading-font-family:
-		'Libre Baskerville', 'Lora', 'Calisto MT', 'Bookman Old Style', Bookman, 'Goudy Old Style',
-		Garamond, 'Hoefler Text', 'Bitstream Charter', Georgia, serif;
+	--heading-font-family: 'Cinzel';
 	--heading-font-weight: bold;
 	--heading-font-style: normal;
 	--heading-letter-spacing: inherit;

@@ -27,3 +27,18 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    
+  storybook:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "6006:6006"
+    volumes:
+      - ./frontend:/app
+      - /app/build
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "storybook", "--", "--no-open"]
+    restart: unless-stopped

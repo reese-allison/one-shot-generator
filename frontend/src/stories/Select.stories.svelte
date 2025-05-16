@@ -1,7 +1,6 @@
 <script module>
 	import { defineMeta } from '@storybook/addon-svelte-csf';
 	import Select from '../lib/components/Select.svelte';
-	import { fn } from '@storybook/test';
 
 	// More on how to set up stories at: https://storybook.js.org/docs/writing-stories
 	const { Story } = defineMeta({
@@ -16,82 +15,101 @@
 			disabled: { control: 'boolean' },
 			required: { control: 'boolean' },
 			containerClass: { control: 'text' },
-			buttonClass: { control: 'text' },
-			menuClass: { control: 'text' },
-			optionClass: { control: 'text' },
 			maxHeight: { control: 'text' },
 			onChange: { action: 'changed' }
 		},
 		args: {
 			id: 'select-component',
 			options: [
-				{ value: 'dnd-5e', label: 'D&D 5E' },
-				{ value: 'mork-borg', label: 'Mork Borg' },
-				{ value: 'tiny-d6', label: 'Tiny D6' }
+				{ value: 'option1', label: 'Option 1' },
+				{ value: 'option2', label: 'Option 2' },
+				{ value: 'option3', label: 'Option 3' }
 			],
-			value: '',
-			placeholder: 'Select theme',
-			onChange: fn()
+			placeholder: 'Select option',
+			onChange: undefined
 		}
 	});
 </script>
 
-<!-- More on writing stories with args: https://storybook.js.org/docs/writing-stories/args -->
+<!-- Default state -->
 <Story name="Default" args={{}} />
 
-<Story name="With Value" args={{ value: 'mork-borg' }} />
+<!-- Set initial value -->
+<Story name="With Initial Value" args={{ value: 'option2' }} />
 
+<!-- Disabled state -->
 <Story name="Disabled" args={{ disabled: true }} />
 
-<Story name="Custom Width" args={{ containerClass: 'w-36' }} />
+<!-- Custom width -->
+<Story name="Custom Width" args={{ containerClass: 'w-64' }} />
 
-<Story
-	name="With Custom Button Style"
-	args={{
-		buttonClass: 'flex items-center gap-2 py-1 px-2',
-		value: 'mork-borg'
-	}}
-/>
-
-<Story
-	name="Theme Switcher Example"
-	args={{
-		id: 'theme-switcher',
-		containerClass: 'w-36',
-		buttonClass: 'flex items-center gap-2 py-1 px-2',
-		value: 'mork-borg'
-	}}
-/>
-
+<!-- With disabled options -->
 <Story
 	name="With Disabled Options"
 	args={{
 		options: [
-			{ value: 'dnd-5e', label: 'D&D 5E' },
-			{ value: 'mork-borg', label: 'Mork Borg', disabled: true },
-			{ value: 'tiny-d6', label: 'Tiny D6' }
-		]
-	}}
-/>
-
-<Story
-	name="Mixed Disabled Options"
-	args={{
-		options: [
-			{ value: 'dnd-5e', label: 'D&D 5E' },
-			{ value: 'mork-borg', label: 'Mork Borg', disabled: true },
-			{ value: 'tiny-d6', label: 'Tiny D6' },
-			{ value: 'pathfinder', label: 'Pathfinder' },
-			{ value: 'call-of-cthulhu', label: 'Call of Cthulhu', disabled: true }
+			{ value: 'option1', label: 'Option 1' },
+			{ value: 'option2', label: 'Option 2', disabled: true },
+			{ value: 'option3', label: 'Option 3' }
 		],
-		maxHeight: '150px'
+		value: 'option1'
 	}}
 />
 
+<!-- Custom placeholder -->
 <Story
-	name="Required Field"
+	name="Custom Placeholder"
 	args={{
-		required: true,
-		name: 'theme-selection'
+		placeholder: 'Choose from the list...',
+		value: ''
+	}}
+/>
+
+<!-- Long labels with truncation -->
+<Story
+	name="Long Option Lables"
+	args={{
+		containerClass: 'w-64',
+		options: [
+			{ value: 'option1', label: 'This is a very long option label that should truncate' },
+			{ value: 'option2', label: 'Another lengthy option that needs truncation' },
+			{ value: 'option3', label: 'Short option' }
+		],
+		value: 'option1'
+	}}
+/>
+
+<!-- Large number of options with scrolling -->
+<Story
+	name="Many Options"
+	args={{
+		options: Array.from({ length: 15 }, (_, i) => ({
+			value: `option${i + 1}`,
+			label: `Option ${i + 1}`
+		})),
+		value: 'option5',
+		maxHeight: '200px'
+	}}
+/>
+
+<!-- Custom max height for dropdown -->
+<Story
+	name="Custom Max Height"
+	args={{
+		options: Array.from({ length: 10 }, (_, i) => ({
+			value: `option${i + 1}`,
+			label: `Option ${i + 1}`
+		})),
+		value: 'option3',
+		maxHeight: '100px'
+	}}
+/>
+
+<!-- No options provided -->
+<Story
+	name="No Options"
+	args={{
+		options: [],
+		placeholder: 'No options available'
 	}}
 />

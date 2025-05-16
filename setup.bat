@@ -36,6 +36,7 @@ pip install -r backend\dev-requirements.txt
 echo Installing frontend dependencies...
 cd frontend
 call npm install
+call npm run build
 cd ..
 
 echo Development environment setup complete!

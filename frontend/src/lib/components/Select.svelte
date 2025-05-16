@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { debounce } from '$lib/utilities/debounce';
-	import { ChevronDown } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import ChevronDown from 'lucide-svelte/icons/chevron-down';
 
 	// ========== TYPES ==========
 
@@ -30,12 +30,6 @@
 		placeholder?: string;
 		/** Additional class for the container */
 		containerClass?: string;
-		/** Additional class for the trigger button */
-		buttonClass?: string;
-		/** Additional class for the dropdown menu */
-		menuClass?: string;
-		/** Additional class for each option */
-		optionClass?: string;
 		/** Unique identifier for the component */
 		id?: string;
 		/** Whether the dropdown is disabled */
@@ -50,25 +44,30 @@
 		onChange?: (value: string) => void;
 	}
 
+	// ========== PROPS ==========
+
 	let {
 		options = [] as SelectOption[],
-		value = '',
+		value: valueFromProp,
 		placeholder = 'Select an option',
-		containerClass = '',
-		buttonClass = '',
-		menuClass = '',
-		optionClass = '',
-		id = 'select-' + Math.random().toString(36).substring(2, 9),
+		containerClass = 'w-full',
+		id: userProvidedId, // Capture user-provided ID
 		disabled = false,
 		name,
 		required = false,
-		maxHeight = '15rem',
-		onChange
+		maxHeight = '25rem',
+		onChange = undefined
 	}: SelectProps = $props();
 
-	// Component state
+	// Generate a base ID for the component instance
+	const baseId = $derived(userProvidedId || 'select-' + Math.random().toString(36).substring(2, 9));
+	const buttonId = $derived(`${baseId}-button`);
+	const menuId = $derived(`${baseId}-menu`);
+
+	// Component state - initialize simply
+	const isControlled = $derived(onChange !== undefined);
+	let selectedValue = $state(valueFromProp ?? '');
 	let isOpen = $state(false);
-	let selectedValue = $state(value);
 	let selectedLabel = $derived(
 		options.find((option: SelectOption) => option.value === selectedValue)?.label || placeholder
 	);
@@ -88,9 +87,15 @@
 		const option = options.find((o: SelectOption) => o.value === optionValue);
 		if (option?.disabled) return;
 
-		selectedValue = optionValue;
-		isOpen = false;
+		if (!isControlled) {
+			// In uncontrolled mode, update internal state directly
+			selectedValue = optionValue;
+		}
 
+		isOpen = false;
+		buttonRef?.focus(); // Return focus to the button
+
+		// Always call onChange if provided
 		if (onChange) {
 			onChange(optionValue);
 		}
@@ -123,25 +128,14 @@
 				break;
 
 			case 'Enter':
-				if (!isOpen) {
-					isOpen = true;
-					event.preventDefault();
-					debouncedFocusSelectedOrFirstOption();
-				} else if (document.activeElement?.getAttribute('role') === 'option') {
-					const value = document.activeElement?.getAttribute('data-value');
-					if (value) setValue(value);
-					event.preventDefault();
-				}
-				break;
-
 			case ' ': // Space key
 				if (!isOpen) {
 					isOpen = true;
 					event.preventDefault();
 					debouncedFocusSelectedOrFirstOption();
 				} else if (document.activeElement?.getAttribute('role') === 'option') {
-					const value = document.activeElement?.getAttribute('data-value');
-					if (value) setValue(value);
+					const val = document.activeElement?.getAttribute('data-value');
+					if (val) setValue(val);
 					event.preventDefault();
 				}
 				break;
@@ -175,14 +169,14 @@
 			case 'Home':
 				if (isOpen) {
 					event.preventDefault();
-					focusOptionAtIndex(0);
+					focusOptionByPosition('first');
 				}
 				break;
 
 			case 'End':
 				if (isOpen) {
 					event.preventDefault();
-					focusLastOption();
+					focusOptionByPosition('last');
 				}
 				break;
 		}
@@ -203,23 +197,21 @@
 	 * Focuses the option at the specified index
 	 */
 	function focusOptionAtIndex(index: number) {
-		if (!menuRef) return;
+		if (!menuRef || index < 0 || index >= options.length) {
+			return;
+		}
+		const optionData = options[index];
+		if (optionData.disabled) {
+			return;
+		}
 
-		const optionElements = Array.from(
-			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
-		);
-		if (optionElements.length === 0) return;
-
-		// Handle negative index (focus last element)
-		const targetIndex = index < 0 ? optionElements.length - 1 : index;
-		// Ensure index is within bounds
-		const boundedIndex = Math.max(0, Math.min(targetIndex, optionElements.length - 1));
-
-		const option = optionElements[boundedIndex] as HTMLElement;
-		if (option) {
-			option.focus();
-			highlightedIndex = boundedIndex;
-			scrollOptionIntoView(option);
+		const optionElement = menuRef.querySelector(
+			`[role="option"][data-value="${optionData.value}"]`
+		) as HTMLElement;
+		if (optionElement) {
+			optionElement.focus();
+			highlightedIndex = index;
+			scrollOptionIntoView(optionElement);
 		}
 	}
 
@@ -227,16 +219,62 @@
 	 * Focuses the selected option or first option
 	 */
 	function focusSelectedOrFirstOption() {
-		if (!menuRef) return;
-
-		const selectedOption = menuRef.querySelector(
-			'[aria-selected="true"]:not([aria-disabled="true"])'
-		) as HTMLElement;
-		if (selectedOption) {
-			selectedOption.focus();
-			scrollOptionIntoView(selectedOption);
+		const currentSelectedIndex = options.findIndex(
+			(opt) => opt.value === selectedValue && !opt.disabled
+		);
+		if (currentSelectedIndex !== -1) {
+			focusOptionAtIndex(currentSelectedIndex);
 		} else {
-			focusOptionAtIndex(0);
+			focusOptionByPosition('first');
+		}
+	}
+
+	/**
+	 * Finds the next enabled option index
+	 */
+	function findNextEnabledOptionIndex(startIndex: number, direction: 1 | -1): number {
+		let currentIndex = startIndex;
+		const len = options.length;
+		if (len === 0) return -1; // No options to search
+
+		for (let i = 0; i < len; i++) {
+			currentIndex += direction;
+			if (currentIndex < 0) currentIndex = len - 1;
+			if (currentIndex >= len) currentIndex = 0;
+
+			if (!options[currentIndex].disabled) {
+				return currentIndex;
+			}
+		}
+		// If all options are disabled or no options
+		const firstEnabled = options.findIndex((opt) => !opt.disabled);
+		return firstEnabled; // Return first enabled or -1 if all disabled
+	}
+
+	/**
+	 * Focuses the next or previous focusable option
+	 */
+	function focusAdjacentOption(direction: 1 | -1) {
+		const allDisabled = options.every((opt) => opt.disabled);
+		if (allDisabled) return;
+
+		let startIndex = -1;
+		if (highlightedIndex !== -1 && !options[highlightedIndex]?.disabled) {
+			startIndex = highlightedIndex;
+		} else {
+			const currentSelectedIdx = options.findIndex(
+				(opt) => opt.value === selectedValue && !opt.disabled
+			);
+			if (currentSelectedIdx !== -1) {
+				startIndex = currentSelectedIdx;
+			} else if (direction === -1) {
+				startIndex = options.length;
+			}
+		}
+
+		const adjacentIndex = findNextEnabledOptionIndex(startIndex, direction);
+		if (adjacentIndex !== -1) {
+			focusOptionAtIndex(adjacentIndex);
 		}
 	}
 
@@ -244,33 +282,46 @@
 	 * Focuses the next focusable option
 	 */
 	function focusNextOption() {
-		if (!menuRef) return;
-
-		const options = Array.from(
-			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
-		);
-		const currentIndex = options.findIndex((item) => document.activeElement === item);
-		focusOptionAtIndex(currentIndex + 1);
+		focusAdjacentOption(1);
 	}
 
 	/**
 	 * Focuses the previous focusable option
 	 */
 	function focusPreviousOption() {
-		if (!menuRef) return;
+		focusAdjacentOption(-1);
+	}
 
-		const options = Array.from(
-			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
-		);
-		const currentIndex = options.findIndex((item) => document.activeElement === item);
-		focusOptionAtIndex(currentIndex - 1);
+	/**
+	 * Focuses the first or last option based on direction
+	 */
+	function focusOptionByPosition(direction: 'first' | 'last') {
+		let targetIndex = -1;
+		if (direction === 'first') {
+			for (let i = 0; i < options.length; i++) {
+				if (!options[i].disabled) {
+					targetIndex = i;
+					break;
+				}
+			}
+		} else {
+			for (let i = options.length - 1; i >= 0; i--) {
+				if (!options[i].disabled) {
+					targetIndex = i;
+					break;
+				}
+			}
+		}
+		if (targetIndex !== -1) {
+			focusOptionAtIndex(targetIndex);
+		}
 	}
 
 	/**
 	 * Focuses the last option in the list
 	 */
 	function focusLastOption() {
-		focusOptionAtIndex(-1);
+		focusOptionByPosition('last');
 	}
 
 	/**
@@ -278,10 +329,8 @@
 	 */
 	function scrollOptionIntoView(optionElement: HTMLElement) {
 		if (!menuRef || !optionElement) return;
-
 		const menuRect = menuRef.getBoundingClientRect();
 		const optionRect = optionElement.getBoundingClientRect();
-
 		if (optionRect.bottom > menuRect.bottom) {
 			menuRef.scrollTop += optionRect.bottom - menuRect.bottom;
 		} else if (optionRect.top < menuRect.top) {
@@ -308,48 +357,49 @@
 		};
 	});
 
-	// Sync prop changes to internal state
 	$effect(() => {
-		if (value !== selectedValue) {
-			selectedValue = value;
-		}
-	});
-
-	// Notify parent of changes to internal state
-	$effect(() => {
-		if (selectedValue !== value && onChange && selectedValue !== '') {
-			onChange(selectedValue);
+		if (isControlled) {
+			const newPropValue = valueFromProp ?? '';
+			if (newPropValue !== selectedValue) {
+				selectedValue = newPropValue;
+			}
 		}
 	});
 </script>
 
 <div
-	class="relative inline-block w-full {containerClass}"
-	{id}
-	data-testid="select-component"
+	class="relative inline-block {containerClass}"
+	id={baseId}
+	data-testid={baseId}
 	bind:this={dropdownRef}
 >
 	<!-- Dropdown trigger button -->
 	<button
 		type="button"
+		id={buttonId}
 		onclick={toggleDropdown}
 		onkeydown={handleKeydown}
 		class="bg-surface-600 hover:bg-surface-500 focus:ring-primary-500 flex w-full items-center justify-between gap-2 rounded-md
 		       px-3 py-2
 		       text-left transition-colors focus:ring-2
 		       focus:outline-none
-			   {buttonClass} 
 			   {disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
-		aria-controls="dropdown-menu-{id}"
-		aria-label={`Select ${placeholder}`}
-		aria-owns={isOpen ? `dropdown-menu-${id}` : undefined}
+		aria-controls={menuId}
+		aria-owns={isOpen ? menuId : undefined}
 		{disabled}
 		tabindex={disabled ? -1 : 0}
 		bind:this={buttonRef}
+		data-testid={`${baseId}-trigger`}
 	>
-		<span class="truncate" class:text-gray-400={selectedValue === ''}>{selectedLabel}</span>
+		<span
+			class="truncate"
+			class:text-gray-400={selectedValue === ''}
+			data-testid={`${baseId}-selected-value`}
+		>
+			{selectedLabel}
+		</span>
 		<ChevronDown
 			size={16}
 			class="flex-shrink-0 transition-transform duration-200 {isOpen ? 'rotate-180 transform' : ''}"
@@ -359,49 +409,61 @@
 
 	<!-- Hidden input for form submissions -->
 	{#if name}
-		<input type="hidden" {name} value={selectedValue} {required} />
+		<input
+			type="hidden"
+			{name}
+			value={selectedValue}
+			{required}
+			data-testid={`${baseId}-hidden-input`}
+		/>
 	{/if}
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
 		<div
-			id="dropdown-menu-{id}"
+			id={menuId}
 			class="bg-surface-700 border-surface-500 absolute top-full left-0 z-10
 			       mt-1 w-full
 			       origin-top-left overflow-y-auto
-			       rounded-md border shadow-lg
-			       {menuClass}"
+			       rounded-md border shadow-lg"
 			style="max-height: {maxHeight};"
 			role="listbox"
-			aria-labelledby={id}
+			aria-labelledby={buttonId}
 			transition:fade={{ duration: 150 }}
 			bind:this={menuRef}
+			data-testid={`${baseId}-menu`}
 		>
 			{#each options as option, index (option.value)}
 				<button
 					type="button"
 					role="option"
-					id="{id}-option-{index}"
+					id={`${baseId}-option-${option.value}`}
 					data-value={option.value}
 					aria-selected={option.value === selectedValue}
 					aria-disabled={option.disabled || false}
 					class="w-full px-4 py-2 text-left transition-colors
 					       first:rounded-t-md last:rounded-b-md
 					       {option.value === selectedValue ? 'bg-surface-500/50' : ''} 
-						   {highlightedIndex === index ? 'bg-surface-500/30' : ''}
-						   {option.disabled ? 'cursor-not-allowed opacity-50 hover:bg-transparent' : 'hover:bg-surface-500'}
-					       {optionClass}"
+						   {highlightedIndex === index && !option.disabled ? 'bg-surface-500/30' : ''}
+						   {option.disabled
+						? 'cursor-not-allowed opacity-50 hover:bg-transparent'
+						: 'hover:bg-surface-500'}"
 					onclick={() => setValue(option.value)}
 					onkeydown={handleKeydown}
-					onmouseenter={() => (highlightedIndex = index)}
+					onmouseenter={() => {
+						if (!option.disabled) highlightedIndex = index;
+					}}
 					onmouseleave={() => (highlightedIndex = -1)}
 					tabindex={isOpen && !option.disabled ? 0 : -1}
 					disabled={option.disabled || false}
+					data-testid={`${baseId}-option-${option.value}`}
 				>
 					{option.label}
 				</button>
 			{:else}
-				<div class="px-4 py-2 italic text-gray-400">No options available</div>
+				<div class="px-4 py-2 italic text-gray-400" data-testid={`${baseId}-no-options`}>
+					No options available
+				</div>
 			{/each}
 		</div>
 	{/if}

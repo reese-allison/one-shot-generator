@@ -46,7 +46,6 @@
 		value={currentTheme}
 		placeholder="Select theme"
 		containerClass="w-36"
-		buttonClass="flex items-center gap-2 py-1 px-2"
 		onChange={handleThemeChange}
 	/>
 </div>

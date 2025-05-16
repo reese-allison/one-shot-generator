@@ -2,7 +2,7 @@
 	--text-scaling: 1.067;
 	--base-font-color: var(--color-surface-900);
 	--base-font-color-dark: var(--color-surface-50);
-	--base-font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+	--base-font-family: 'Inter';
 	--base-font-size: inherit;
 	--base-line-height: inherit;
 	--base-font-weight: normal;
@@ -11,7 +11,7 @@
 
 	--heading-font-color: var(--color-primary-700);
 	--heading-font-color-dark: var(--color-primary-300);
-	--heading-font-family: 'Roboto Condensed', sans-serif;
+	--heading-font-family: 'Barlow Condensed';
 	--heading-font-weight: bold;
 	--heading-font-style: normal;
 	--heading-letter-spacing: inherit;

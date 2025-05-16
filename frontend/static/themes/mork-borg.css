@@ -2,7 +2,7 @@
 	--text-scaling: 1.067;
 	--base-font-color: var(--color-surface-100);
 	--base-font-color-dark: var(--color-surface-100);
-	--base-font-family: 'EB Garamond', 'Times New Roman', serif;
+	--base-font-family: 'Crimson Pro';
 	--base-font-size: inherit;
 	--base-line-height: inherit;
 	--base-font-weight: normal;
@@ -11,7 +11,7 @@
 
 	--heading-font-color: var(--color-warning-500);
 	--heading-font-color-dark: var(--color-warning-500);
-	--heading-font-family: 'Pirata One', 'Blackletter', fantasy;
+	--heading-font-family: 'Grenze Gotisch';
 	--heading-font-weight: bold;
 	--heading-font-style: normal;
 	--heading-letter-spacing: inherit;
@@ -39,17 +39,17 @@
 	--body-background-color: var(--color-surface-950);
 	--body-background-color-dark: var(--color-surface-950);
 
-	--color-primary-50: oklch(97% 0.04 110deg);
-	--color-primary-100: oklch(95% 0.08 110deg);
-	--color-primary-200: oklch(93% 0.12 110deg);
-	--color-primary-300: oklch(91% 0.16 110deg);
-	--color-primary-400: oklch(89% 0.2 110deg);
-	--color-primary-500: oklch(87% 0.24 110deg);
-	--color-primary-600: oklch(85% 0.28 110deg);
-	--color-primary-700: oklch(83% 0.32 110deg);
-	--color-primary-800: oklch(81% 0.36 110deg);
-	--color-primary-900: oklch(79% 0.4 110deg);
-	--color-primary-950: oklch(77% 0.44 110deg);
+	--color-primary-50: oklch(99% 0.08 95deg);
+	--color-primary-100: oklch(97% 0.14 95deg);
+	--color-primary-200: oklch(95% 0.2 95deg);
+	--color-primary-300: oklch(93% 0.26 95deg);
+	--color-primary-400: oklch(91% 0.32 95deg);
+	--color-primary-500: oklch(90% 0.45 95deg);
+	--color-primary-600: oklch(87% 0.4 95deg);
+	--color-primary-700: oklch(84% 0.35 95deg);
+	--color-primary-800: oklch(81% 0.3 95deg);
+	--color-primary-900: oklch(78% 0.25 95deg);
+	--color-primary-950: oklch(75% 0.2 95deg);
 
 	--color-primary-contrast-dark: var(--color-surface-950);
 	--color-primary-contrast-light: var(--color-surface-50);
