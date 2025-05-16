@@ -48,7 +48,7 @@ This project provides a simple interface for generating RPG oneshot adventure id
 3. **Docker Setup**:
    To run the application using Docker:
    ```
-   docker-compose up
+   docker compose up -d
    ```
    This will start both the frontend and backend services:
    - Frontend will be available at http://localhost:80
