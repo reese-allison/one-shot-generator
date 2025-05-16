@@ -1,16 +1,55 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { debounce } from '$lib/utilities/debounce';
 	import { ChevronDown } from 'lucide-svelte';
+	import { onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 
-	// ========== PROPS AND STATE ==========
+	// ========== TYPES ==========
 
-	// Define option type for better type safety
-	type SelectOption = {
+	/**
+	 * Represents a selectable option in the dropdown
+	 */
+	export interface SelectOption {
+		/** Unique identifier for the option */
 		value: string;
+		/** Display text for the option */
 		label: string;
-	};
+		/** Whether the option is disabled/unselectable */
+		disabled?: boolean;
+	}
 
-	// Props with proper typing
+	/**
+	 * Props for the Select component
+	 */
+	interface SelectProps {
+		/** Options to display in the dropdown */
+		options?: SelectOption[];
+		/** Current selected value */
+		value?: string;
+		/** Placeholder text when no option is selected */
+		placeholder?: string;
+		/** Additional class for the container */
+		containerClass?: string;
+		/** Additional class for the trigger button */
+		buttonClass?: string;
+		/** Additional class for the dropdown menu */
+		menuClass?: string;
+		/** Additional class for each option */
+		optionClass?: string;
+		/** Unique identifier for the component */
+		id?: string;
+		/** Whether the dropdown is disabled */
+		disabled?: boolean;
+		/** Input name for form submissions */
+		name?: string;
+		/** Required status for form validation */
+		required?: boolean;
+		/** Maximum height of the dropdown menu */
+		maxHeight?: string;
+		/** Callback when selection changes */
+		onChange?: (value: string) => void;
+	}
+
 	let {
 		options = [] as SelectOption[],
 		value = '',
@@ -19,52 +58,61 @@
 		buttonClass = '',
 		menuClass = '',
 		optionClass = '',
-		id = 'dropdown-' + Math.random().toString(36).substring(2, 9),
+		id = 'select-' + Math.random().toString(36).substring(2, 9),
 		disabled = false,
-		onChange = undefined as ((value: string) => void) | undefined
-	} = $props();
+		name,
+		required = false,
+		maxHeight = '15rem',
+		onChange
+	}: SelectProps = $props();
 
 	// Component state
 	let isOpen = $state(false);
 	let selectedValue = $state(value);
 	let selectedLabel = $derived(
-		options.find((option) => option.value === selectedValue)?.label || placeholder
+		options.find((option: SelectOption) => option.value === selectedValue)?.label || placeholder
 	);
+	let highlightedIndex = $state<number>(-1);
 
-	// Element references to reduce DOM queries
+	// Element references
 	let dropdownRef = $state<HTMLDivElement | null>(null);
 	let menuRef = $state<HTMLDivElement | null>(null);
 	let buttonRef = $state<HTMLButtonElement | null>(null);
 
 	// ========== EVENT HANDLERS ==========
 
-	// Set the selected value and call onChange callback
+	/**
+	 * Sets the selected value and calls the onChange callback
+	 */
 	function setValue(optionValue: string) {
-		selectedValue = optionValue;
-		isOpen = false; // Close dropdown after selection
+		const option = options.find((o: SelectOption) => o.value === optionValue);
+		if (option?.disabled) return;
 
-		// Call the onChange callback if provided
+		selectedValue = optionValue;
+		isOpen = false;
+
 		if (onChange) {
 			onChange(optionValue);
 		}
 	}
 
-	// Toggle dropdown with keyboard accessibility
-	function toggleDropdown(event: Event) {
+	/**
+	 * Toggles the dropdown open/closed state
+	 */
+	function toggleDropdown(event: MouseEvent) {
 		event.stopPropagation();
 		if (!disabled) {
 			isOpen = !isOpen;
 
-			// If opening, focus the selected option or first option
 			if (isOpen) {
-				setTimeout(() => {
-					focusSelectedOrFirstOption();
-				}, 10);
+				debouncedFocusSelectedOrFirstOption();
 			}
 		}
 	}
 
-	// Handle keyboard navigation
+	/**
+	 * Handles keyboard navigation and interaction
+	 */
 	function handleKeydown(event: KeyboardEvent) {
 		if (disabled) return;
 
@@ -73,30 +121,31 @@
 				isOpen = false;
 				buttonRef?.focus();
 				break;
+
 			case 'Enter':
 				if (!isOpen) {
 					isOpen = true;
 					event.preventDefault();
 					debouncedFocusSelectedOrFirstOption();
 				} else if (document.activeElement?.getAttribute('role') === 'option') {
-					// If an option is focused, select it
 					const value = document.activeElement?.getAttribute('data-value');
 					if (value) setValue(value);
 					event.preventDefault();
 				}
 				break;
+
 			case ' ': // Space key
 				if (!isOpen) {
 					isOpen = true;
 					event.preventDefault();
 					debouncedFocusSelectedOrFirstOption();
 				} else if (document.activeElement?.getAttribute('role') === 'option') {
-					// If an option is focused, select it
 					const value = document.activeElement?.getAttribute('data-value');
 					if (value) setValue(value);
 					event.preventDefault();
 				}
 				break;
+
 			case 'ArrowDown':
 				event.preventDefault();
 				if (!isOpen) {
@@ -106,6 +155,7 @@
 					focusNextOption();
 				}
 				break;
+
 			case 'ArrowUp':
 				event.preventDefault();
 				if (!isOpen) {
@@ -115,10 +165,32 @@
 					focusPreviousOption();
 				}
 				break;
+
+			case 'Tab':
+				if (isOpen) {
+					isOpen = false;
+				}
+				break;
+
+			case 'Home':
+				if (isOpen) {
+					event.preventDefault();
+					focusOptionAtIndex(0);
+				}
+				break;
+
+			case 'End':
+				if (isOpen) {
+					event.preventDefault();
+					focusLastOption();
+				}
+				break;
 		}
 	}
 
-	// Handle clicks outside the dropdown to close it
+	/**
+	 * Closes the dropdown when clicking outside
+	 */
 	function handleClickOutside(event: MouseEvent) {
 		if (isOpen && dropdownRef && !dropdownRef.contains(event.target as Node)) {
 			isOpen = false;
@@ -127,62 +199,94 @@
 
 	// ========== FOCUS MANAGEMENT ==========
 
-	// Simplified focus management with a unified approach
+	/**
+	 * Focuses the option at the specified index
+	 */
 	function focusOptionAtIndex(index: number) {
 		if (!menuRef) return;
 
-		const options = menuRef.querySelectorAll('[role="option"]');
-		if (options.length === 0) return;
+		const optionElements = Array.from(
+			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
+		);
+		if (optionElements.length === 0) return;
 
 		// Handle negative index (focus last element)
-		const targetIndex = index < 0 ? options.length - 1 : index;
+		const targetIndex = index < 0 ? optionElements.length - 1 : index;
 		// Ensure index is within bounds
-		const boundedIndex = Math.max(0, Math.min(targetIndex, options.length - 1));
+		const boundedIndex = Math.max(0, Math.min(targetIndex, optionElements.length - 1));
 
-		const option = options[boundedIndex] as HTMLElement;
+		const option = optionElements[boundedIndex] as HTMLElement;
 		if (option) {
 			option.focus();
+			highlightedIndex = boundedIndex;
+			scrollOptionIntoView(option);
 		}
 	}
 
+	/**
+	 * Focuses the selected option or first option
+	 */
 	function focusSelectedOrFirstOption() {
 		if (!menuRef) return;
 
-		const selectedOption = menuRef.querySelector('[aria-selected="true"]') as HTMLElement;
+		const selectedOption = menuRef.querySelector(
+			'[aria-selected="true"]:not([aria-disabled="true"])'
+		) as HTMLElement;
 		if (selectedOption) {
 			selectedOption.focus();
+			scrollOptionIntoView(selectedOption);
 		} else {
 			focusOptionAtIndex(0);
 		}
 	}
 
+	/**
+	 * Focuses the next focusable option
+	 */
 	function focusNextOption() {
 		if (!menuRef) return;
 
-		const options = Array.from(menuRef.querySelectorAll('[role="option"]'));
+		const options = Array.from(
+			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
+		);
 		const currentIndex = options.findIndex((item) => document.activeElement === item);
 		focusOptionAtIndex(currentIndex + 1);
 	}
 
+	/**
+	 * Focuses the previous focusable option
+	 */
 	function focusPreviousOption() {
 		if (!menuRef) return;
 
-		const options = Array.from(menuRef.querySelectorAll('[role="option"]'));
+		const options = Array.from(
+			menuRef.querySelectorAll('[role="option"]:not([aria-disabled="true"])')
+		);
 		const currentIndex = options.findIndex((item) => document.activeElement === item);
 		focusOptionAtIndex(currentIndex - 1);
 	}
 
+	/**
+	 * Focuses the last option in the list
+	 */
 	function focusLastOption() {
 		focusOptionAtIndex(-1);
 	}
 
-	// Debounce function for performance optimization
-	function debounce<T extends (...args: unknown[]) => void>(fn: T, ms = 10) {
-		let timeoutId: ReturnType<typeof setTimeout>;
-		return function (this: unknown, ...args: Parameters<T>) {
-			clearTimeout(timeoutId);
-			timeoutId = setTimeout(() => fn.apply(this, args), ms);
-		};
+	/**
+	 * Ensures the focused option is visible in the scrollable dropdown
+	 */
+	function scrollOptionIntoView(optionElement: HTMLElement) {
+		if (!menuRef || !optionElement) return;
+
+		const menuRect = menuRef.getBoundingClientRect();
+		const optionRect = optionElement.getBoundingClientRect();
+
+		if (optionRect.bottom > menuRect.bottom) {
+			menuRef.scrollTop += optionRect.bottom - menuRect.bottom;
+		} else if (optionRect.top < menuRect.top) {
+			menuRef.scrollTop -= menuRect.top - optionRect.top;
+		}
 	}
 
 	const debouncedFocusSelectedOrFirstOption = debounce(focusSelectedOrFirstOption);
@@ -190,28 +294,28 @@
 
 	// ========== LIFECYCLE AND EFFECTS ==========
 
-	// On mount, set up event handlers
+	// Set up event handlers
 	onMount(() => {
 		document.addEventListener('click', handleClickOutside);
 
 		// Cleanup on component destruction
 		return () => {
 			document.removeEventListener('click', handleClickOutside);
+			// Clean up references
 			dropdownRef = null;
 			menuRef = null;
 			buttonRef = null;
 		};
 	});
 
-	// Bidirectional synchronization between prop and internal state
+	// Sync prop changes to internal state
 	$effect(() => {
-		// When prop changes, update internal state
 		if (value !== selectedValue) {
 			selectedValue = value;
 		}
 	});
 
-	// When internal state changes and it's different from prop value, notify parent
+	// Notify parent of changes to internal state
 	$effect(() => {
 		if (selectedValue !== value && onChange && selectedValue !== '') {
 			onChange(selectedValue);
@@ -220,7 +324,7 @@
 </script>
 
 <div
-	class="relative inline-block {containerClass}"
+	class="relative inline-block w-full {containerClass}"
 	{id}
 	data-testid="select-component"
 	bind:this={dropdownRef}
@@ -230,32 +334,47 @@
 		type="button"
 		onclick={toggleDropdown}
 		onkeydown={handleKeydown}
-		class="bg-surface-600 hover:bg-surface-500 flex items-center justify-between gap-2 rounded-md px-3 py-2 {buttonClass} {disabled
-			? 'cursor-not-allowed opacity-50'
-			: 'cursor-pointer'}"
+		class="bg-surface-600 hover:bg-surface-500 focus:ring-primary-500 flex w-full items-center justify-between gap-2 rounded-md
+		       px-3 py-2
+		       text-left transition-colors focus:ring-2
+		       focus:outline-none
+			   {buttonClass} 
+			   {disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
 		aria-controls="dropdown-menu-{id}"
 		aria-label={`Select ${placeholder}`}
 		aria-owns={isOpen ? `dropdown-menu-${id}` : undefined}
 		{disabled}
+		tabindex={disabled ? -1 : 0}
 		bind:this={buttonRef}
 	>
-		<span class="truncate">{selectedLabel}</span>
+		<span class="truncate" class:text-gray-400={selectedValue === ''}>{selectedLabel}</span>
 		<ChevronDown
 			size={16}
-			class="transition-transform duration-200 {isOpen ? 'rotate-180 transform' : ''}"
+			class="flex-shrink-0 transition-transform duration-200 {isOpen ? 'rotate-180 transform' : ''}"
 			aria-hidden="true"
 		/>
 	</button>
+
+	<!-- Hidden input for form submissions -->
+	{#if name}
+		<input type="hidden" {name} value={selectedValue} {required} />
+	{/if}
 
 	<!-- Dropdown menu -->
 	{#if isOpen}
 		<div
 			id="dropdown-menu-{id}"
-			class="bg-surface-700 absolute top-full left-0 z-10 mt-1 max-h-60 w-full origin-top-left overflow-y-auto rounded-md shadow-lg {menuClass}"
+			class="bg-surface-700 border-surface-500 absolute top-full left-0 z-10
+			       mt-1 w-full
+			       origin-top-left overflow-y-auto
+			       rounded-md border shadow-lg
+			       {menuClass}"
+			style="max-height: {maxHeight};"
 			role="listbox"
 			aria-labelledby={id}
+			transition:fade={{ duration: 150 }}
 			bind:this={menuRef}
 		>
 			{#each options as option, index (option.value)}
@@ -265,20 +384,25 @@
 					id="{id}-option-{index}"
 					data-value={option.value}
 					aria-selected={option.value === selectedValue}
-					class="hover:bg-surface-500 w-full px-4 py-2 text-left first:rounded-t-md last:rounded-b-md {optionClass} {option.value ===
-					selectedValue
-						? 'bg-surface-500/50'
-						: ''}"
+					aria-disabled={option.disabled || false}
+					class="w-full px-4 py-2 text-left transition-colors
+					       first:rounded-t-md last:rounded-b-md
+					       {option.value === selectedValue ? 'bg-surface-500/50' : ''} 
+						   {highlightedIndex === index ? 'bg-surface-500/30' : ''}
+						   {option.disabled ? 'cursor-not-allowed opacity-50 hover:bg-transparent' : 'hover:bg-surface-500'}
+					       {optionClass}"
 					onclick={() => setValue(option.value)}
 					onkeydown={handleKeydown}
-					tabindex={isOpen ? 0 : -1}
+					onmouseenter={() => (highlightedIndex = index)}
+					onmouseleave={() => (highlightedIndex = -1)}
+					tabindex={isOpen && !option.disabled ? 0 : -1}
+					disabled={option.disabled || false}
 				>
 					{option.label}
 				</button>
+			{:else}
+				<div class="px-4 py-2 italic text-gray-400">No options available</div>
 			{/each}
-			{#if options.length === 0}
-				<div class="px-4 py-2 text-gray-400 italic">No options available</div>
-			{/if}
 		</div>
 	{/if}
 </div>
